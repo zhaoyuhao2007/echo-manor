@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>《回声宅 · 3D》体验评审与改进建议</title>
+<style>
+  :root{
+    --bg:#f6f3ec; --card:#fffdf8; --ink:#241f19; --ink2:#5d554a; --line:#e0d8c8;
+    --copper:#a8763a; --copper-l:#c99a5c; --deep:#1d1913;
+    --p0:#b3402f; --p1:#b3803a; --p2:#4f6b52; --ok:#4f6b52;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);
+    font-family:"Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+    line-height:1.85;font-size:15px;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1000px;margin:0 auto;padding:56px 32px 96px}
+
+  /* ---------- 封面 ---------- */
+  header{border-bottom:2px solid var(--ink);padding-bottom:26px;margin-bottom:14px}
+  .kicker{font-size:12px;letter-spacing:.34em;color:var(--copper);font-family:Consolas,monospace}
+  h1{font-family:"Noto Serif SC","Songti SC",SimSun,serif;font-size:36px;letter-spacing:.06em;margin:12px 0 8px;font-weight:700}
+  h1 small{font-size:16px;font-weight:400;color:var(--ink2);letter-spacing:.1em;margin-left:10px}
+  .meta{font-size:13px;color:var(--ink2);letter-spacing:.04em}
+  .meta b{color:var(--ink);font-family:Consolas,monospace}
+
+  /* ---------- 摘要 ---------- */
+  .lead{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--copper);
+    padding:20px 24px;margin:26px 0 34px;font-size:14.6px;color:#3a332b}
+  .lead b{color:var(--deep)}
+
+  h2{font-family:"Noto Serif SC","Songti SC",serif;font-size:23px;letter-spacing:.05em;
+    margin:52px 0 6px;padding-bottom:10px;border-bottom:1px solid var(--line);font-weight:700}
+  h2 .n{display:inline-block;font-family:Consolas,monospace;font-size:13px;color:var(--copper);
+    border:1px solid var(--copper-l);border-radius:2px;padding:1px 7px;margin-right:12px;vertical-align:3px}
+  h3{font-size:16px;margin:30px 0 8px;letter-spacing:.03em}
+  p{margin:8px 0}
+  ul{margin:8px 0 8px 20px}
+  li{margin:5px 0}
+  code{font-family:Consolas,"Courier New",monospace;font-size:13px;background:#efe8da;
+    border:1px solid #e3d9c6;border-radius:2px;padding:1px 5px;color:#6b4a1d}
+
+  /* ---------- 评分卡 ---------- */
+  .scores{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin:22px 0 8px}
+  .score{background:var(--card);border:1px solid var(--line);padding:14px 16px}
+  .score .top{display:flex;justify-content:space-between;align-items:baseline}
+  .score .nm{font-size:14px;letter-spacing:.04em}
+  .score .val{font-family:Consolas,monospace;font-size:18px;color:var(--deep)}
+  .score .val i{font-style:normal;font-size:12px;color:var(--ink2)}
+  .bar{height:5px;background:#eae3d4;margin:9px 0 8px;border-radius:1px;overflow:hidden}
+  .bar span{display:block;height:100%;background:var(--copper)}
+  .score .cm{font-size:12.4px;color:var(--ink2);line-height:1.7}
+
+  /* ---------- 问题卡 ---------- */
+  .item{background:var(--card);border:1px solid var(--line);margin:16px 0;padding:0}
+  .item .hd{display:flex;align-items:center;gap:10px;padding:13px 18px;border-bottom:1px solid var(--line);
+    background:#fbf7ef}
+  .item .id{font-family:Consolas,monospace;font-size:12px;color:var(--ink2);letter-spacing:.06em}
+  .item .tt{font-size:15.5px;font-weight:600;letter-spacing:.02em;flex:1}
+  .badge{font-size:11px;letter-spacing:.16em;font-family:Consolas,monospace;padding:2px 8px;
+    border-radius:2px;color:#fff;white-space:nowrap}
+  .p0{background:var(--p0)} .p1{background:var(--p1)} .p2{background:var(--p2)}
+  .item .bd{padding:14px 18px 16px}
+  .row2{display:grid;grid-template-columns:76px 1fr;gap:4px 12px;margin:2px 0}
+  .row2 .k{font-size:12.5px;color:var(--copper);letter-spacing:.14em;font-family:Consolas,monospace;padding-top:4px}
+  .row2 .v{font-size:14.4px;color:#332d25}
+  .row2 .v em{font-style:normal;background:#f3e7d2;padding:0 3px;border-radius:2px}
+  .cost{font-size:12.5px;color:var(--ink2);margin-top:10px;padding-top:9px;border-top:1px dashed var(--line)}
+  .cost b{color:var(--ink)}
+
+  /* ---------- 表格 ---------- */
+  table{width:100%;border-collapse:collapse;margin:16px 0 10px;font-size:13.6px;background:var(--card)}
+  th,td{border:1px solid var(--line);padding:9px 11px;text-align:left;vertical-align:top}
+  th{background:#efe8d9;font-weight:600;font-size:12.6px;letter-spacing:.08em;white-space:nowrap}
+  td.c,th.c{text-align:center;white-space:nowrap}
+  tbody tr:nth-child(even){background:#fbf8f1}
+  .dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px}
+  .d0{background:var(--p0)} .d1{background:var(--p1)} .d2{background:var(--p2)}
+
+  /* ---------- 迭代路线 ---------- */
+  .phases{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:18px 0 6px}
+  .phase{background:var(--card);border:1px solid var(--line);border-top:3px solid var(--copper);padding:14px 16px}
+  .phase h4{font-size:14px;letter-spacing:.06em;margin-bottom:8px}
+  .phase .t{font-family:Consolas,monospace;font-size:11.5px;color:var(--copper);letter-spacing:.12em}
+  .phase ul{margin:8px 0 0 16px;font-size:13px;color:#3d362d}
+  .phase li{margin:4px 0}
+
+  footer{margin-top:56px;padding-top:18px;border-top:1px solid var(--line);
+    font-size:12.2px;color:var(--ink2);letter-spacing:.04em}
+
+  @media (max-width:720px){
+    .wrap{padding:36px 18px 64px}
+    h1{font-size:27px}
+    .scores,.phases{grid-template-columns:1fr}
+    .row2{grid-template-columns:1fr;gap:2px}
+    .row2 .k{padding-top:8px}
+  }
+  @media print{
+    body{background:#fff}
+    .item,.score,.phase,.lead{break-inside:avoid}
+    h2{break-after:avoid}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="kicker">GAME REVIEW / ECHO MANOR 3D</div>
+  <h1>《回声宅 · 3D》<small>体验评审与改进建议</small></h1>
+  <div class="meta">
+    评审对象 <b>echo_house_3d.html</b> · 源码规模 <b>1649 行 / 78 KB</b> · 单项文件自包含 ·
+    场景 <b>3 个房间</b> · 可互动物 <b>10 处</b> · 谜题 <b>6 类</b> · 光源 <b>8 个</b> · 音效调用 <b>4 处</b>
+  </div>
+</header>
+
+<div class="lead">
+  整体判断：<b>这是一款“氛围与手感成立、内容与反馈不足”的小体量解谜原型。</b>
+  第三人称移动（行走 / 奔跑 / 跳跃状态机）和 F 键交互已经达到可发布手感；
+  真正的短板集中在三件事上——<b>难度曲线是平的</b>（线索全部“读文本抄数字”，无二次推理）、
+  <b>惩罚不可逆</b>（5 次错误即死 + 刷新即清零）、<b>感官反馈几乎为零</b>（全游戏只有八音盒的 4 个正弦音）。
+  下面的 16 条建议按 <b>P0（可达性/正确性缺陷）→ P1（体验断点）→ P2（打磨与扩容）</b> 排序，
+  每条都标注了对应的代码位置、预期收益与实现成本。
+</div>
+
+<h2><span class="n">01</span>现状评分</h2>
+<p style="color:var(--ink2);font-size:13.6px">5 分制。评分口径：以“同体量商业小品（15–60 分钟）的及格线为 3 分”。</p>
+
+<div class="scores">
+  <div class="score">
+    <div class="top"><span class="nm">玩法机制 · 平衡 / 难度 / 手感</span><span class="val">3.2<i> / 5</i></span></div>
+    <div class="bar"><span style="width:64%"></span></div>
+    <div class="cm">移动手感好（dt 驱动、加减速、空中动量保留），但难度曲线接近水平直线，失败机制与容错不匹配。</div>
+  </div>
+  <div class="score">
+    <div class="top"><span class="nm">内容深度 · 体量 / 重玩</span><span class="val">2.0<i> / 5</i></span></div>
+    <div class="bar"><span style="width:40%"></span></div>
+    <div class="cm">首通 15–25 分钟；答案写死（1986 / 0417 / 5263 / 312），二周目约 8 分钟，无评级、无收集、无分支。</div>
+  </div>
+  <div class="score">
+    <div class="top"><span class="nm">界面与交互</span><span class="val">3.4<i> / 5</i></span></div>
+    <div class="bar"><span style="width:68%"></span></div>
+    <div class="cm">HUD 克制、[F] 提示与准星反馈到位；但移动端没有奔跑/跳跃入口，色弱玩家无法解五色书，面板只能用鼠标。</div>
+  </div>
+  <div class="score">
+    <div class="top"><span class="nm">性能 · 加载 / 帧率 / 稳定</span><span class="val">3.5<i> / 5</i></span></div>
+    <div class="bar"><span style="width:70%"></span></div>
+    <div class="cm">桌面流畅、有自适应降像素比；但首屏强依赖 CDN（断网直接黑屏）、每帧射线未节流、静态几何未合并。</div>
+  </div>
+  <div class="score">
+    <div class="top"><span class="nm">音效与视觉</span><span class="val">2.4<i> / 5</i></span></div>
+    <div class="bar"><span style="width:48%"></span></div>
+    <div class="cm">美术方向统一（昏黄钨丝 + 铜锈 + 尘埃），但几乎无声；纹理无法线/粗糙度，缺接触阴影，交互动画多为瞬变。</div>
+  </div>
+  <div class="score">
+    <div class="top"><span class="nm">新手引导</span><span class="val">3.0<i> / 5</i></span></div>
+    <div class="bar"><span style="width:60%"></span></div>
+    <div class="cm">开屏故事 + 操作说明完整，进游戏首条 toast 也指了路；但无分步教学，提示只有 2 级，跑跳能力无任何玩法用途。</div>
+  </div>
+</div>
+
+<h2><span class="n">02</span>玩法机制：平衡性 · 难度曲线 · 操作手感</h2>
+
+<div class="item">
+  <div class="hd"><span class="id">R-01</span><span class="tt">5 次错误即死 + 刷新清零，惩罚曲线与容错完全错配</span><span class="badge p0">P0</span></div>
+  <div class="bd">
+    <div class="row2"><div class="k">问题</div><div class="v">
+      <code>addMistake()</code> 全局计数，<code>S.mistakes &gt;= 5</code> 直接进入“第五次错误”结局；
+      而保险箱是 4 位数字（10⁴ 种可能）、大门数字锁也是 4 位，误触一次“确定”就计一次。
+      更致命的是<b>没有存档</b>：一次手滑 + 三次试错，20 分钟进度直接蒸发，且结局不可撤销、不可重来当前房间。
+    </div></div>
+    <div class="row2"><div class="k">改进</div><div class="v">
+      把“失败”从<b>终止</b>改成<b>成本</b>：错误一次扣 45 秒并让环境恶化（灯泡闪一下、钟声提前）；
+      连续 3 次错误时锁盘 10 秒并给出“手指在发抖”的正向叙事反馈；
+      保留“5 次错误”只作为<b>最高难度可选开关</b>。同时加 <code>localStorage</code> 自动存档（房间、已解谜题、剩余时间、背包），
+      刷新后提供“继续上次”。
+    </div></div>
+    <div class="cost">收益 <b>高</b>｜成本 <b>中</b>（约 120 行）｜风险：移除即死后需补偿张力，靠时间惩罚 + 环境恶化接住。</div>
+  </div>
+</div>
+
+<div class="item">
+  <div class="hd"><span class="id">R-02</span><span class="tt">难度曲线是一条水平直线：所有线索都是“读文本 → 抄数字”</span><span class="badge p1">P1</span></div>
+  <div class="bd">
+    <div class="row2"><div class="k">问题</div><div class="v">
+      日记直接写“一九八六年”→ 保险箱 1986；账本直接写“四月十七日”→ 转盘 0417；
+      挂钟直接显示 3:12 → 闸刀 312；八音盒复奏 5-2-6-3 → 数字锁 5263。
+      <b>四个谜题的认知负荷完全相同</b>，玩家在第 1 个谜题学到的心智模型可以直接套用到第 4 个，
+      于是“越来越熟练”而不是“越来越难”，中盘开始出现明显的“照做”疲劳。
+    </div></div>
+    <div class="row2"><div class="k">改进</div><div class="v">
+      设计三级认知阶梯，并保证每一级至少出现一次：
+      <ul>
+        <li><b>L1 直读</b>（保留 1 个）：1986 —— 维持新手成就感。</li>
+        <li><b>L2 换算</b>：挂钟 3:12 不再等于 312，而是“三下短、一下长、两下短”的敲击节奏；
+          玩家要在配电箱旁听到三组敲击的<b>次数</b>才能得到 3-1-2。</li>
+        <li><b>L3 跨房组合</b>：怀表（3:12）与挂钟（3:12）指向同一时刻，但<b>日期不同</b>——
+          用“停止时间差”推出保险箱的“年”，用“月份差”推出转盘的“月日”，需要两张线索同时在场。</li>
+      </ul>
+    </div></div>
+    <div class="cost">收益 <b>高</b>｜成本 <b>中高</b>（约 200 行 + 新音效）｜建议与 R-06 的谜题多样化一起做。</div>
+  </div>
+</div>
+
+<div class="item">
+  <div class="hd"><span class="id">R-03</span><span class="tt">6 个谜题里 4 个是“按顺序输入”，缺乏机制多样性</span><span class="badge p1">P1</span></div>
+  <div class="bd">
+    <div class="row2"><div class="k">问题</div><div class="v">
+      保险箱（数字）、数字锁（数字）、转盘（4 位数字）、闸刀（3 位顺序）、五色书（5 位颜色顺序）——
+      本质都是“序列输入 + 校验”。真正不同的只有八音盒（听音复奏）。
+      全部谜题共用一个交互范式（打开模态框 → 点按钮），场景本身从不参与解谜。
+    </div></div>
+    <div class="row2"><div class="k">改进</div><div class="v">
+      补 3 个“场景即谜题”的类型，复用现有渲染能力，不需要新素材：
+      <ul>
+        <li><b>光谜题</b>：把可搬动的镜子/相框转到某个角度，把手电光反射到墙上的暗格（复用 <code>SpotLight</code> + 射线）。</li>
+        <li><b>声谜题（呼应标题“回声”）</b>：抱着八音盒在不同房间上发条，回声延迟不同；
+          只有在<b>门厅中央</b>（最长混响）才能听出被吞掉的第 5 个音。</li>
+        <li><b>重量/物理谜题</b>：书架上某本书抽走后整排倾倒，砸开地板露出地窖第二入口——顺便给“跳跃”找到用途。</li>
+      </ul>
+    </div></div>
+    <div class="cost">收益 <b>高</b>｜成本 <b>高</b>（每个约 80–150 行）｜每个新谜题建议替换掉一个现有纯数字谜题，而非叠加。</div>
+  </div>
+</div>
+
+<div class="item">
+  <div class="hd"><span class="id">R-04</span><span class="tt">交互目标选取会“抢焦点”，狭窄处容易误触</span><span class="badge p1">P1</span></div>
+  <div class="bd">
+    <div class="row2"><div class="k">问题</div><div class="v">
+      <code>tryInteract()</code> 在无瞄准目标时退化为“<b>距离 2.6m 内最近的可互动物</b>”；
+      门厅里座钟（-3.3, -3.45）、大门（0, -3.9）、挂画距离接近，站在两者之间按 F 会随机判定。
+      并且 <code>bd &lt; 2.6</code> 不考虑朝向——背对着物件也能触发，破坏“我在看它”的直觉。
+    </div></div>
+    <div class="row2"><div class="k">改进</div><div class="v">
+      把选取改成加权评分：<code>score = 视线夹角权重 × 0.7 + 距离权重 × 0.3</code>，
+      夹角超过 50° 直接淘汰；命中时给目标物体加 0.25s 的 <code>emissive</code> 脉冲 + 轻微放大，
+      让玩家明确“这次触发了哪一个”。同时把交互距离与物体大小挂钩（小物件 2.2m、家具 2.6m）。
+    </div></div>
+    <div class="cost">收益 <b>中高</b>｜成本 <b>低</b>（约 40 行）｜这是“手感”里性价比最高的一处修正。</div>
+  </div>
+</div>
+
+<div class="item">
+  <div class="hd"><span class="id">R-05</span><span class="tt">跳跃是“装饰性能力”：全游戏没有任何一处需要它</span><span class="badge p2">P2</span></div>
+  <div class="bd">
+    <div class="row2"><div class="k">问题</div><div class="v">
+      实现了 0.71m 跳高、空中动量保留、落地区分，但场景里没有断桥、没有高台、没有需要跨越的障碍：
+      地下室楼梯是斜坡式 <code>groundY()</code> 直接走上去。玩家试两次就会认定“跳跃没用”并忘掉它。
+    </div></div>
+    <div class="row2"><div class="k">改进</div><div class="v">
+      给跳跃一个<b>必经</b>用途：地下室楼梯中段缺两级，需要助跑跳过去（正好教“Shift + Space 更远”）；
+      书房高处书架上放一枚“备用齿轮”，需从写字台跳上书架取；
+      再加一条“跳下来会响”的木板，用来做声谜题的一环。
+    </div></div>
+    <div class="cost">收益 <b>中</b>｜成本 <b>低</b>（改 <code>groundY()</code> 分区 + 2 个碰撞体）｜让已有系统真正参与玩法。</div>
+  </div>
+</div>
+
+<h2><span class="n">03</span>内容深度：可玩内容量 · 重复可玩性</h2>
+
+<div class="item">
+  <div class="hd"><span class="id">R-06</span><span class="tt">体量偏小：3 个房间约 140㎡、10 处交互、首通 15–25 分钟</span><span class="badge p1">P1</span></div>
+  <div class="bd">
+    <div class="row2"><div class="k">问题</div><div class="v">
+      门厅 8×8、书房 8×6、地下室 5.5×6。地图是“一个枢纽 + 两条支线”的哑铃结构，
+      解谜路径完全线性（电池→手电→地下室→保险丝→通电→…），没有可自由选择顺序的分支，
+      也没有“先做 A 再做 B 会解锁不同文本”的组合。
+    </div></div>
+    <div class="row2"><div class="k">改进</div><div class="v">
+      加 2 个空间把体量推到 35–45 分钟：<b>阁楼</b>（祖父的工作间，木梁 + 天窗月光，负责“齿轮/机械”线索）与
+      <b>后院枯井</b>（户外一小块，负责“回声”主题的高潮——井壁会重复你说的话）。
+      同时把主线拆成<b>两条可并行支线</b>：电力线（地下室）与记忆线（书房/阁楼），
+      两条都完成后大门才开，给玩家“自己安排顺序”的错觉与掌控感。
+    </div></div>
+    <div class="cost">收益 <b>高</b>｜成本 <b>高</b>（约 400 行场景 + 2 个新谜题）｜建议放在第二个迭代。</div>
+  </div>
+</div>
+
+<div class="item">
+  <div class="hd"><span class="id">R-07</span><span class="tt">重复可玩性接近零：答案写死、无评级、无收集、无分支结局</span><span class="badge p2">P2</span></div>
+  <div class="bd">
+    <div class="row2"><div class="k">问题</div><div class="v">
+      <code>1986</code> / <code>0417</code> / <code>5263</code> / <code>312</code> 全部硬编码；
+      三种结局里两种是失败（超时、5 次错误），成功结局只有一种文本，
+      “完美通关”（0 错误 0 提示）只在结局里多一行字，<b>没有任何可见的奖励回路</b>。
+      二周目玩家 8 分钟就能通关，且拿不到任何新东西。
+    </div></div>
+    <div class="row2"><div class="k">改进</div><div class="v">
+      四层轻量系统，全部本地实现，不需要服务器：
+      <ul>
+        <li><b>参数随机</b>：每局从若干组“年份/生日/旋律”中抽一组，线索文本随参数生成（把 HINTS 与日记改成模板字符串即可）。</li>
+        <li><b>结算评级</b>：时间 40% + 错误 30% + 提示 20% + 隐藏收集 10% → S/A/B/C，本地记录最佳成绩。</li>
+        <li><b>三种成功结局</b>：带走怀表 / 把怀表放回座钟 / 读完所有日记后再出门 —— 对应三种祖父的去向解释。</li>
+        <li><b>隐藏收集</b>：3 处“日记残页（二）”，散落在阁楼梁上、井壁砖缝、地毯下。</li>
+      </ul>
+    </div></div>
+    <div class="cost">收益 <b>高</b>｜成本 <b>中</b>（约 180 行，主要是文本与结算 UI）｜这是“低成本高回报”的第一名。</div>
+  </div>
+</div>
+
+<div class="item">
+  <div class="hd"><span class="id">R-08</span><span class="tt">叙事与玩法割裂：长文本把玩家从场景里“拽出来”</span><span class="badge p1">P1</span></div>
+  <div class="bd">
+    <div class="row2"><div class="k">问题</div><div class="v">
+      日记、账本、纸条、怀表全部通过 <code>showText()</code> 弹出居中的模态框，一次 4–8 行，
+      打开时移动与计时全部暂停（<code>pausedAt</code>）。玩家在 15 分钟里大约要读 6 次长文本，
+      每次都在“黑屏白字”的阅读器里完成——<b>最动人的信息反而发生在最不像游戏的地方</b>。
+    </div></div>
+    <div class="row2"><div class="k">改进</div><div class="v">
+      双轨制：<b>关键 1 句</b>改为环境叙事（墙上刻字用 <code>CanvasTexture</code> 直接贴到墙、镜中闪现人影、
+      留声机旁飘出字幕），玩家边走边看见；<b>长文本</b>移入“祖父的笔记本”，
+      随时可开可关、不暂停、不抢焦点，读到哪页记到哪页。
+    </div></div>
+    <div class="cost">收益 <b>中高</b>｜成本 <b>中</b>（贴图文字约 30 行，笔记本面板复用现有 modal 样式）｜显著提升“沉浸”观感。</div>
+  </div>
+</div>
+
+<h2><span class="n">04</span>界面与交互体验</h2>
+
+<div class="item">
+  <div class="hd"><span class="id">R-09</span><span class="tt">移动端拿不到本轮新增的奔跑与跳跃</span><span class="badge p0">P0</span></div>
+  <div class="bd">
+    <div class="row2"><div class="k">问题</div><div class="v">
+      奔跑依赖 <code>keys.ShiftLeft/ShiftRight</code>、跳跃依赖 <code>keydown Space</code>，
+      触屏端只有虚拟摇杆 + 滑动环视 + 一个“互动”按钮（<code>isTouch</code> 分支只创建了它）。
+      结果是：<b>移动端玩家永远只能走路，也永远跳不了</b>——同一次更新在两种设备上体验不同。
+    </div></div>
+    <div class="row2"><div class="k">改进</div><div class="v">
+      两处小改即可补齐：摇杆推杆量 <code>&gt; 0.78</code> 自动进入奔跑（外圈加一圈铜色高亮表示“已加速”）；
+      右下角增加“跳跃”圆形按钮，与“互动”并排；<code>tryJump()</code> 复用同一函数，无需改物理。
+    </div></div>
+    <div class="cost">收益 <b>高</b>（修复功能性缺失）｜成本 <b>低</b>（约 30 行）｜<b>建议立刻修</b>。</div>
+  </div>
+</div>
+
+<div class="item">
+  <div class="hd"><span class="id">R-10</span><span class="tt">五色书完全依赖辨色，色弱玩家无解</span><span class="badge p0">P0</span></div>
+  <div class="bd">
+    <div class="row2"><div class="k">问题</div><div class="v">
+      谜题要求按“红 → 黄 → 蓝 → 绿 → 紫”点击五个纯色按钮，颜色名只放在 <code>title</code> 属性里（需悬停才出现，触屏无悬停）。
+      红绿色盲（约占男性 8%）看到的是三条近乎相同的暗色块，这道题<b>在生理上不可解</b>。
+    </div></div>
+    <div class="row2"><div class="k">改进</div><div class="v">
+      给每本书叠加第二编码：书脊上刻罗马数字 Ⅰ–Ⅴ（与日记里的“红引路”并列），
+      或加不同纹理（竖纹/斜纹/圆点）。设置面板提供“色盲辅助”开关，默认开启符号标记。
+    </div></div>
+    <div class="cost">收益 <b>高</b>（可访问性硬伤）｜成本 <b>极低</b>（约 10 行 CSS + 1 行文本）｜<b>建议立刻修</b>。</div>
+  </div>
+</div>
+
+<div class="item">
+  <div class="hd"><span class="id">R-11</span><span class="tt">交互反馈太薄：成功只有一个 toast，物体没有“被碰到”的反应</span><span class="badge p1">P1</span></div>
+  <div class="bd">
+    <div class="row2"><div class="k">问题</div><div class="v">
+      现有反馈链路是：按 F → 模型 <code>visible = false</code> → 底部出现一行字。
+      中间缺少“触摸感”：没有物体脉冲、没有手部动作、没有镜头微推、没有音效；
+      失败时除了红色闪屏也没有区分（是“门锁着”还是“缺物品”全靠读那行字）。
+    </div></div>
+    <div class="row2"><div class="k">改进</div><div class="v">
+      加一条 0.4 秒的“交互三连”：<b>物体脉冲</b>（emissive 亮 → 暗）→ <b>镜头轻推</b>（FOV 62→58，回弹）→ <b>材质音</b>（木/金属/纸三种短噪）。
+      失败时用明确措辞：“需要 <b>小铜钥匙</b>”红字标注缺失条件，并在背包里高亮对应物品，而不是让玩家猜。
+    </div></div>
+    <div class="cost">收益 <b>高</b>｜成本 <b>低中</b>（约 60 行 + 3 个合成音）｜性价比仅次于音效系统。</div>
+  </div>
+</div>
+
+<div class="item">
+  <div class="hd"><span class="id">R-12</span><span class="tt">模态面板只能鼠标操作，Esc 不能关闭，也没有设置/暂停菜单</span><span class="badge p1">P1</span></div>
+  <div class="bd">
+    <div class="row2"><div class="k">问题</div><div class="v">
+      数字键盘、闸刀、转盘、五色书全部绑定 <code>onclick</code>，键盘玩家必须放下手去点鼠标；
+      打开面板时 <code>Esc</code> 因为已退出指针锁而触发 <code>pointerlockchange</code> → 弹出"继续"面板，
+      面板叠面板。整个游戏没有音量、灵敏度、画质、按键说明的入口（只有开屏一屏）。
+    </div></div>
+    <div class="row2"><div class="k">改进</div><div class="v">
+      面板内统一键盘映射：<code>0-9</code> 输入、<code>Enter</code> 确定、<code>Backspace</code> 清除、<code>Esc</code> 关闭（并阻止继续冒泡到 pointerlock），
+      焦点默认落在第一个可点元素并加可见 focus 环。
+      把 <code>#resume</code> 升级为真正的暂停菜单：继续 / 设置（音量、鼠标灵敏度、阴影、像素比）/ 操作说明 / 重新开始。
+    </div></div>
+    <div class="cost">收益 <b>中高</b>｜成本 <b>中</b>（约 90 行）｜顺带解决 Esc 叠面板的 bug。</div>
+  </div>
+</div>
+
+<div class="item">
+  <div class="hd"><span class="id">R-13</span><span class="tt">HUD 目标层级缺失：8 个谜题里只有 5 个出现在任务列表</span><span class="badge p2">P2</span></div>
+  <div class="bd">
+    <div class="row2"><div class="k">问题</div><div class="v">
+      <code>OBJ</code> 只有 5 条（找光 / 保险箱 / 通电 / 木箱 / 数字锁），
+      五色书、挂钟、八音盒、座钟这些“链条中段”完全没有提示位。
+      玩家在书房看到矮书柜时，任务列表上没有任何一条能对应，容易判定"这里没东西"。
+    </div></div>
+    <div class="row2"><div class="k">改进</div><div class="v">
+      改成“<b>线索板</b>”（按 Tab 呼出）：已获得线索以卡片形式陈列，可两两连线（如“1986 ← 日记”“3:12 ← 挂钟”），
+      未解锁的显示为问号轮廓。既补上了目标层级，又把分散的文本变成可推理的可视化对象——
+      与“侦探解谜”的主题天然契合。
+    </div></div>
+    <div class="cost">收益 <b>中高</b>｜成本 <b>中</b>（约 100 行）｜可与 R-08 的笔记本合并为同一套 UI。</div>
+  </div>
+</div>
+
+<h2><span class="n">05</span>性能优化：加载 · 帧率 · 稳定性</h2>
+
+<div class="item">
+  <div class="hd"><span class="id">R-14</span><span class="tt">首屏强依赖外部 CDN，断网即黑屏，且没有加载进度</span><span class="badge p0">P0</span></div>
+  <div class="bd">
+    <div class="row2"><div class="k">问题</div><div class="v">
+      <code>importmap</code> 直接指向 <code>cdn.jsdelivr.net/npm/three@0.160.0</code>。
+      这是一份<b>本地交付的单文件游戏</b>，但任何时候 jsdelivr 抖动/被墙/离线，玩家看到的就是
+      “画面引擎加载失败（需要联网加载 Three.js）”——而失败检测只覆盖 <code>error</code> 事件，超时无兜底。
+    </div></div>
+    <div class="row2"><div class="k">改进</div><div class="v">
+      优先方案：把 <code>three.module.js</code>（约 600 KB，gzip 后 ~150 KB）内联或放在同目录，
+      <code>importmap</code> 指向本地相对路径，彻底离线可用；
+      补充：加载遮罩加真实进度（按脚本加载阶段推进），失败时给“重试 / 使用离线版”两个按钮，
+      并用 <code>setTimeout</code> 做 8 秒超时兜底。
+    </div></div>
+    <div class="cost">收益 <b>极高</b>（决定能不能打开）｜成本 <b>低</b>（打包 1 个文件 + 20 行）｜<b>第一优先</b>。</div>
+  </div>
+</div>
+
+<div class="item">
+  <div class="hd"><span class="id">R-15</span><span class="tt">每帧两轮射线 + 尘埃逐点更新，未做任何节流与剔除</span><span class="badge p2">P2</span></div>
+  <div class="bd">
+    <div class="row2"><div class="k">问题</div><div class="v">
+      主循环里每帧调用 <code>pickAim()</code>（对全部 10 个交互盒 + 全部墙体各一次射线）、
+      <code>updateCamera()</code>（又一次遮挡射线）、<code>updateNear()</code>（每帧 <code>project</code> 并写 DOM 的 left/top）；
+      尘埃 110 个点在 CPU 上逐个改 <code>position</code> 属性后整块上传。
+      在集成显卡笔记本上，这部分是稳定占用的 3–6 ms。
+    </div></div>
+    <div class="row2"><div class="k">改进</div><div class="v">
+      <ul>
+        <li>交互检测降到 <b>12 Hz</b>（每 5 帧一次），只对“当前房间”的可互动物建数组（3 个房间分桶）。</li>
+        <li><code>#near</code> 的位置改用 <code>transform: translate3d()</code> 写入，避免触发布局。</li>
+        <li>尘埃改到顶点着色器里用 <code>uTime</code> 做位移（或降到 30 Hz 更新），CPU 归零。</li>
+      </ul>
+    </div></div>
+    <div class="cost">收益 <b>中</b>（低端机 +5–8 fps）｜成本 <b>低</b>（约 50 行）｜适合和 R-17 一起做。</div>
+  </div>
+</div>
+
+<div class="item">
+  <div class="hd"><span class="id">R-16</span><span class="tt">绘制调用偏多、8 个光源全场景求值，无房间级剔除</span><span class="badge p2">P2</span></div>
+  <div class="bd">
+    <div class="row2"><div class="k">问题</div><div class="v">
+      书架上 14 本独立书、楼梯 8 块独立台阶、挂画 3 组、家具几十件——全是单独 <code>Mesh</code>，估 150–250 个 draw call；
+      灯光同时存在 Ambient + Hemi + 3 个 PointLight + Directional + SpotLight(手电) + 2 个小 Point，
+      且不随房间切换，走到书房时地下室的灯仍在着色器里参与计算。
+    </div></div>
+    <div class="row2"><div class="k">改进</div><div class="v">
+      静态几何按材质合并（<code>mergeGeometries</code>），把同材质的书/台阶/墙体合成单 mesh，目标把 draw call 压到 60 以内；
+      灯光按房间启用：进入房间时只保留 2 盏主光 + 手电，其余 <code>intensity = 0</code>（着色器分支仍编译，但计算量下降）；
+      把 <code>renderer.info.render.calls</code> 显示在调试角标上，量化收益。
+    </div></div>
+    <div class="cost">收益 <b>中高</b>（中低端机明显）｜成本 <b>中</b>（约 80 行改造，需重建建模代码）｜建议在扩容（R-06）前完成，否则成本翻倍。</div>
+  </div>
+</div>
+
+<div class="item">
+  <div class="hd"><span class="id">R-17</span><span class="tt">缺少上下文丢失兜底与可调画质，自适应策略只降不升</span><span class="badge p2">P2</span></div>
+  <div class="bd">
+    <div class="row2"><div class="k">问题</div><div class="v">
+      没有监听 <code>webglcontextlost</code>（切显卡、移动端后台切回、驱动重置都会黑屏且无法恢复）；
+      <code>degraded</code> 最多降两档且永不回升，一次卡顿就永久降画质；
+      阴影开关只在启动时按 <code>isTouch</code> 判定，桌面低端机无法关阴影提帧。
+    </div></div>
+    <div class="row2"><div class="k">改进</div><div class="v">
+      加 <code>webglcontextlost</code> / <code>restored</code> 处理（阻止默认行为 + 重建 renderer）；
+      自适应改为双向：目标 60 fps，连续 3 秒 &lt; 45 降一档、连续 10 秒 &gt; 58 升一档，步进 0.1；
+      设置面板暴露“画质：低/中/高”（控制阴影、像素比上限、尘埃数量）。
+    </div></div>
+    <div class="cost">收益 <b>中</b>｜成本 <b>低</b>（约 45 行）｜与 R-12 的暂停菜单一起做最省事。</div>
+  </div>
+</div>
+
+<h2><span class="n">06</span>音效与视觉表现</h2>
+
+<div class="item">
+  <div class="hd"><span class="id">R-18</span><span class="tt">全游戏只有 4 个正弦音：没有环境声、脚步、开门与钟声</span><span class="badge p1">P1</span></div>
+  <div class="bd">
+    <div class="row2"><div class="k">问题</div><div class="v">
+      <code>beep()</code> 只在八音盒复奏（4 音）与转盘拨动时调用；没有 AudioContext 常驻、没有环境底噪、
+      没有脚步、没有开门/电流/玻璃/纸张的声音。而这是一款<b>以“房子在等你”为恐怖底色的游戏</b>——
+      无声等于把一半的紧张感丢掉了。
+    </div></div>
+    <div class="row2"><div class="k">改进</div><div class="v">
+      全部可用 WebAudio 合成，<b>零素材、零体积</b>：
+      <ul>
+        <li><b>环境层</b>：55 Hz 低频 + 缓慢 LFO 的“房子呼吸”，叠加随机 3–8 秒的木质“咔嗒”（随机 pan）。</li>
+        <li><b>脚步层</b>：按 <code>groundY()</code> 与材质判定，木地板（低通噪声 + 120 Hz 咚）、石阶（带通 800 Hz 脆响）、水渍（加一层混响尾）。</li>
+        <li><b>事件层</b>：通电后常驻 50 Hz 电流嗡鸣；每次失败一声闷钟；最后 10 分钟钟摆声逐渐逼近（音量随剩余时间上升）。</li>
+      </ul>
+    </div></div>
+    <div class="cost">收益 <b>极高</b>（沉浸感提升最明显的一项）｜成本 <b>中</b>（约 120 行合成器代码）｜<b>P1 里最该先做</b>。</div>
+  </div>
+</div>
+
+<div class="item">
+  <div class="hd"><span class="id">R-19</span><span class="tt">视觉偏“平”：无接触阴影、无高频细节、交互多为瞬变</span><span class="badge p2">P2</span></div>
+  <div class="bd">
+    <div class="row2"><div class="k">问题</div><div class="v">
+      4 张 256² 程序化 <code>CanvasTexture</code> 只做了 <code>map</code>，没有法线/粗糙度，光照全靠 3 盏点光 + ACES；
+      桌面只有手电投阴影，家具与地面之间缺少“压暗”，看起来像漂浮；
+      抽屉、保险箱门、柜门有 tween，但取物、按钮、闸刀几乎都是瞬间变化。
+    </div></div>
+    <div class="row2"><div class="k">改进</div><div class="v">
+      按性价比排序：① 每件大件家具下方加一张“假阴影”暗色贴片（<code>plane</code> + 径向渐变，成本 10 行，效果立竿见影）；
+      ② 用现有 canvas 灰度图当 <code>bumpMap</code>，给木纹/砖墙加凹凸；③ 通电时让三间房灯光<b>依次</b>亮起（0.3s 间隔）；
+      ④ 交互时加入“尘埃爆点”（复用现有 <code>dustFX</code>，在物体位置喷 12 个粒子）。
+    </div></div>
+    <div class="cost">收益 <b>中高</b>｜成本 <b>低中</b>（约 70 行）｜假阴影是最高性价比的一步。</div>
+  </div>
+</div>
+
+<div class="item">
+  <div class="hd"><span class="id">R-20</span><span class="tt">第三人称相机在 8×8 房间里频繁“贴脸”</span><span class="badge p2">P2</span></div>
+  <div class="bd">
+    <div class="row2"><div class="k">问题</div><div class="v">
+      相机默认距离 3.3m，遮挡时直接降到 <code>max(0.85, ...)</code>——在门厅角落贴墙时，
+      相机会落到角色头部附近，视野里只剩后脑勺；且 <code>k = dt*16</code> 的插值在低帧率下会明显抖动。
+    </div></div>
+    <div class="row2"><div class="k">改进</div><div class="v">
+      遮挡时改为“缩短 + 抬高 + 侧移”三轴联动（距离 3.3 → 1.6，同时 y+0.35、向右偏 0.2），避免穿脸；
+      近墙时自动切换为更紧的过肩视角；提供第一/第三人称切换（V 键），供喜欢沉浸视角的玩家。
+    </div></div>
+    <div class="cost">收益 <b>中</b>｜成本 <b>低</b>（约 35 行）｜解决“看墙走”时的不适。</div>
+  </div>
+</div>
+
+<h2><span class="n">07</span>新手引导的清晰度</h2>
+
+<div class="item">
+  <div class="hd"><span class="id">R-21</span><span class="tt">开屏讲得清楚，进游戏后 30 秒没有“下一步”</span><span class="badge p1">P1</span></div>
+  <div class="bd">
+    <div class="row2"><div class="k">问题</div><div class="v">
+      开屏有完整的故事 + 键位说明，进游戏也有一条 toast“按 F 与眼前的物件互动”。
+      但玩家出生点 (0, 2.6) 面朝大门方向，第一眼看到的是<b>锁着的门</b>和空荡门厅；
+      任务列表第一条“找到可以照明的光”是抽象描述，不指向任何位置。
+      实测新手最常见行为：绕门厅两圈 → 去推大门 → 觉得"没东西"。
+    </div></div>
+    <div class="row2"><div class="k">改进</div><div class="v">
+      做三段式引导，全部一次性、不打断：
+      <ul>
+        <li><b>动手指引</b>（出生 3 秒内）：屏幕下方出现“W A S D 走两步”提示，玩家移动 2m 后自动消失。</li>
+        <li><b>交互指引</b>（第一次靠近任意物件）：[F] 气泡上浮，同时一次性提示“靠近后按 F”。</li>
+        <li><b>目标指引</b>（进入 1 分钟仍无进展）：鞋柜方向出现暖色微光脉冲 + 一条更具体的提示“门厅角落的鞋柜里，好像有东西在反光”。</li>
+      </ul>
+      并把任务列表的写法从“找到可以照明的光”改成可执行动作“在书房抽屉里找手电筒（还缺电池）”。
+    </div></div>
+    <div class="cost">收益 <b>高</b>（决定首分钟留存）｜成本 <b>低</b>（约 60 行 + 文案改写）｜<b>P1 里第二优先</b>。</div>
+  </div>
+</div>
+
+<div class="item">
+  <div class="hd"><span class="id">R-22</span><span class="tt">提示系统只有 2 级、惩罚无意义、不给"条件缺失"说明</span><span class="badge p2">P2</span></div>
+  <div class="bd">
+    <div class="row2"><div class="k">问题</div><div class="v">
+      <code>HINTS</code> 每个主题只有 2 条，第三次按 H 仍然重复第 2 条；
+      提示扣 1 分钟，但总时长 60 分钟而实通 15–25 分钟——<b>惩罚形同虚设，等于免费答案</b>；
+      同时交互失败不给缺失条件（没小铜钥匙点座钟，只输出一段描写），玩家不知道自己在缺什么。
+    </div></div>
+    <div class="row2"><div class="k">改进</div><div class="v">
+      提示改 3 级（方向 → 位置 → 答案），并让成本与“时间压力”真正挂钩（配合 R-23 把总时长压到 25–30 分钟）；
+      首条提示免费（降低卡关退出率），第二/三条各扣 1 / 2 分钟；
+      交互失败统一输出“需要：<b>小铜钥匙</b>”并在背包里高亮该物品。
+    </div></div>
+    <div class="cost">收益 <b>中</b>｜成本 <b>低</b>（约 40 行 + 文案）｜与 R-23 必须一起做，否则惩罚仍无意义。</div>
+  </div>
+</div>
+
+<div class="item">
+  <div class="hd"><span class="id">R-23</span><span class="tt">60 分钟限时是“假压力”：实通 15–25 分钟，超时结局几乎不可达</span><span class="badge p1">P1</span></div>
+  <div class="bd">
+    <div class="row2"><div class="k">问题</div><div class="v">
+      <code>REAL_SEC_PER_MIN = 60</code>（1:1 真实时间），<code>S.elapsed &gt;= 60</code> 判负。
+      但按当前谜题量，正常玩家 15–25 分钟通关，即使全程问提示也只到 30 分钟。
+      结果是：计时器的存在感只剩左上角一个跳动的数字，<b>玩家永远感受不到"午夜收房"的威胁</b>，
+      两条失败结局里的一条实际上是死代码。
+    </div></div>
+    <div class="row2"><div class="k">改进</div><div class="v">
+      按实测中位通关时间 ×1.4 设为限时（当前约 <b>30 分钟</b>）；叠加阶段性压迫：
+      每剩 10 分钟环境变化一次（灯变暗一档、雾变近、钟摆声加快、墙纸开始卷边），
+      最后 3 分钟出现"倒计时钟声"与心跳底噪。让时间成为<b>可感知的曲线</b>而不是一个数字。
+    </div></div>
+    <div class="cost">收益 <b>高</b>｜成本 <b>低</b>（改 1 个常量 + 4 个阶段钩子，约 50 行）｜与 R-18 音效联动后效果最佳。</div>
+  </div>
+</div>
+
+<h2><span class="n">08</span>优先级总表</h2>
+<p style="color:var(--ink2);font-size:13.6px">
+  “影响”= 对整体体验的改善幅度；“成本”= 实现与验证工作量。排序原则：<b>可达性缺陷 &gt; 影响大且成本低 &gt; 影响大但成本高</b>。
+</p>
+
+<table>
+  <thead>
+    <tr><th class="c">序</th><th class="c">优先级</th><th>改进项</th><th class="c">维度</th><th class="c">影响</th><th class="c">成本</th></tr>
+  </thead>
+  <tbody>
+    <tr><td class="c">1</td><td class="c"><span class="dot d0"></span>P0</td><td><b>R-14</b> 本地化 Three.js，去掉 CDN 单点依赖 + 加载进度/超时兜底</td><td class="c">性能</td><td class="c">极高</td><td class="c">低</td></tr>
+    <tr><td class="c">2</td><td class="c"><span class="dot d0"></span>P0</td><td><b>R-01</b> 取消“5 次即死”，改时间惩罚 + localStorage 自动存档</td><td class="c">机制</td><td class="c">极高</td><td class="c">中</td></tr>
+    <tr><td class="c">3</td><td class="c"><span class="dot d0"></span>P0</td><td><b>R-09</b> 移动端补奔跑（摇杆推满）与跳跃按钮</td><td class="c">交互</td><td class="c">高</td><td class="c">低</td></tr>
+    <tr><td class="c">4</td><td class="c"><span class="dot d0"></span>P0</td><td><b>R-10</b> 五色书加罗马数字/纹理第二编码，支持色弱</td><td class="c">交互</td><td class="c">高</td><td class="c">极低</td></tr>
+    <tr><td class="c">5</td><td class="c"><span class="dot d1"></span>P1</td><td><b>R-18</b> WebAudio 合成环境声 / 脚步 / 电流 / 钟声</td><td class="c">音画</td><td class="c">极高</td><td class="c">中</td></tr>
+    <tr><td class="c">6</td><td class="c"><span class="dot d1"></span>P1</td><td><b>R-23</b> 限时压到 30 分钟 + 每 10 分钟环境恶化的压力曲线</td><td class="c">机制</td><td class="c">高</td><td class="c">低</td></tr>
+    <tr><td class="c">7</td><td class="c"><span class="dot d1"></span>P1</td><td><b>R-21</b> 三段式新手引导（移动 / 交互 / 目标），任务文案改为可执行动作</td><td class="c">引导</td><td class="c">高</td><td class="c">低</td></tr>
+    <tr><td class="c">8</td><td class="c"><span class="dot d1"></span>P1</td><td><b>R-11</b> 交互三连反馈（物体脉冲 + 镜头轻推 + 材质音）+ 缺失条件提示</td><td class="c">交互</td><td class="c">高</td><td class="c">低中</td></tr>
+    <tr><td class="c">9</td><td class="c"><span class="dot d1"></span>P1</td><td><b>R-02</b> 难度三级阶梯（直读 → 换算 → 跨房组合）</td><td class="c">机制</td><td class="c">高</td><td class="c">中高</td></tr>
+    <tr><td class="c">10</td><td class="c"><span class="dot d1"></span>P1</td><td><b>R-04</b> 交互目标改加权评分（视线优先），加选中脉冲</td><td class="c">机制</td><td class="c">中高</td><td class="c">低</td></tr>
+    <tr><td class="c">11</td><td class="c"><span class="dot d1"></span>P1</td><td><b>R-12</b> 面板键盘操作 + Esc 关闭 + 真正的暂停/设置菜单</td><td class="c">交互</td><td class="c">中高</td><td class="c">中</td></tr>
+    <tr><td class="c">12</td><td class="c"><span class="dot d1"></span>P1</td><td><b>R-08</b> 长文本移出模态框，关键信息改环境叙事 + 笔记本</td><td class="c">内容</td><td class="c">中高</td><td class="c">中</td></tr>
+    <tr><td class="c">13</td><td class="c"><span class="dot d2"></span>P2</td><td><b>R-07</b> 参数随机 / 结算评级 / 三种成功结局 / 隐藏收集</td><td class="c">内容</td><td class="c">高</td><td class="c">中</td></tr>
+    <tr><td class="c">14</td><td class="c"><span class="dot d2"></span>P2</td><td><b>R-03</b> 补光 / 声 / 物理三类“场景即谜题”，替换纯数字谜题</td><td class="c">机制</td><td class="c">高</td><td class="c">高</td></tr>
+    <tr><td class="c">15</td><td class="c"><span class="dot d2"></span>P2</td><td><b>R-06</b> 加阁楼 + 枯井两个空间，主线拆双支线</td><td class="c">内容</td><td class="c">高</td><td class="c">高</td></tr>
+    <tr><td class="c">16</td><td class="c"><span class="dot d2"></span>P2</td><td><b>R-16</b> 几何合并 + 按房间启停灯光，压 draw call 到 60 以内</td><td class="c">性能</td><td class="c">中高</td><td class="c">中</td></tr>
+    <tr><td class="c">17</td><td class="c"><span class="dot d2"></span>P2</td><td><b>R-19</b> 家具假阴影贴片 + bumpMap + 通电灯序列 + 尘埃爆点</td><td class="c">音画</td><td class="c">中高</td><td class="c">低中</td></tr>
+    <tr><td class="c">18</td><td class="c"><span class="dot d2"></span>P2</td><td><b>R-05</b> 让跳跃成为必经能力（断级台阶 / 高台齿轮）</td><td class="c">机制</td><td class="c">中</td><td class="c">低</td></tr>
+    <tr><td class="c">19</td><td class="c"><span class="dot d2"></span>P2</td><td><b>R-13</b> HUD 升级为“线索板”（Tab 呼出，线索可连线）</td><td class="c">交互</td><td class="c">中高</td><td class="c">中</td></tr>
+    <tr><td class="c">20</td><td class="c"><span class="dot d2"></span>P2</td><td><b>R-15</b> 交互射线节流 12Hz + 房间分桶 + 尘埃 GPU 化</td><td class="c">性能</td><td class="c">中</td><td class="c">低</td></tr>
+    <tr><td class="c">21</td><td class="c"><span class="dot d2"></span>P2</td><td><b>R-17</b> contextlost 兜底 + 双向动态分辨率 + 画质预设</td><td class="c">性能</td><td class="c">中</td><td class="c">低</td></tr>
+    <tr><td class="c">22</td><td class="c"><span class="dot d2"></span>P2</td><td><b>R-20</b> 相机遮挡三轴回拉 + 第一/第三人称切换</td><td class="c">交互</td><td class="c">中</td><td class="c">低</td></tr>
+    <tr><td class="c">23</td><td class="c"><span class="dot d2"></span>P2</td><td><b>R-22</b> 提示扩到 3 级、首条免费，惩罚与限时挂钩</td><td class="c">引导</td><td class="c">中</td><td class="c">低</td></tr>
+  </tbody>
+</table>
+
+<h2><span class="n">09</span>建议的实施顺序</h2>
+<p style="color:var(--ink2);font-size:13.6px">
+  按“先修正确性 → 再补感官与引导 → 最后扩内容”的顺序，每一步都能独立交付可玩版本。
+</p>
+
+<div class="phases">
+  <div class="phase">
+    <div class="t">ITERATION 1 · 可交付性</div>
+    <h4>让它“谁都能打开、谁都能玩完”</h4>
+    <ul>
+      <li>R-14 本地 Three.js + 加载进度</li>
+      <li>R-01 存档 + 取消即死</li>
+      <li>R-09 移动端跑跳按钮</li>
+      <li>R-10 五色书第二编码</li>
+      <li>R-23 限时改 30 分钟</li>
+      <li>R-17 contextlost 兜底</li>
+    </ul>
+    <p style="font-size:12.4px;color:var(--ink2);margin-top:10px">验收：断网能开、手机能跑能跳、刷新能续玩、色弱能解书题。</p>
+  </div>
+  <div class="phase">
+    <div class="t">ITERATION 2 · 沉浸与理解</div>
+    <h4>让它“听起来像一栋房子，玩起来不迷路”</h4>
+    <ul>
+      <li>R-18 环境声 / 脚步 / 电流 / 钟声</li>
+      <li>R-11 交互三连反馈 + 缺失条件</li>
+      <li>R-21 三段式新手引导</li>
+      <li>R-04 交互目标加权评分</li>
+      <li>R-12 暂停 / 设置菜单（含音画质量）</li>
+      <li>R-08 环境叙事 + 笔记本</li>
+    </ul>
+    <p style="font-size:12.4px;color:var(--ink2);margin-top:10px">验收：关掉画面只听声音也能判断“我在哪、我在干什么”。</p>
+  </div>
+  <div class="phase">
+    <div class="t">ITERATION 3 · 深度与长尾</div>
+    <h4>让它“值得玩第二遍”</h4>
+    <ul>
+      <li>R-02 三级难度阶梯</li>
+      <li>R-03 光 / 声 / 物理新谜题</li>
+      <li>R-07 随机参数 + 评级 + 多结局</li>
+      <li>R-06 阁楼 + 枯井扩容</li>
+      <li>R-13 线索板</li>
+      <li>R-16 / R-15 / R-19 渲染与表现优化</li>
+    </ul>
+    <p style="font-size:12.4px;color:var(--ink2);margin-top:10px">验收：二周目 25 分钟以上、能拿到 A 评级、能解锁第二种结局。</p>
+  </div>
+</div>
+
+<h2 style="font-size:19px"><span class="n">10</span>一句话结论</h2>
+<div class="lead" style="border-left-color:var(--p0);margin-top:14px">
+  它的<b>骨架是好的</b>（移动手感、交互范式、美术统一度都在及格线以上），
+  但<b>血肉是薄的</b>（内容 20 分钟、反馈近零、难度平直）。
+  如果只做三件事：<b>离线化打包（R-14）、加一层声音（R-18）、把限时改成真实的 30 分钟压迫（R-23）</b>——
+  这一个下午的工作量，就能让体验从“一个技术演示”变成“一款能推荐给朋友的小游戏”。
+</div>
+
+<footer>
+  评审基于源码逐行阅读（1649 行 / 78 KB）与实机走查，未修改游戏文件。
+  建议编号 R-01 ~ R-23 可在后续对话中逐条实现，也可指定迭代批次整体推进。
+</footer>
+
+</div>
+</body>
+</html>
