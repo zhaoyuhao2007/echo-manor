@@ -8,6 +8,7 @@
 - **本地游玩**：下载 `index.html`，双击用浏览器打开。不需要服务器、不需要联网（Three.js r160 已内联进文件）
 - **体积**：760 KB 单文件，含 3D 引擎、程序化贴图与音效
 - **技术栈**：Three.js + 原生 JavaScript，无框架、无构建步骤
+- **C 语言版**：另有两个终端版本 —— 菜单文字版（`echo_house_c.c`）与第一人称画面版（`echo_house_fp.c`），谜题与网页版一致
 
 ---
 
@@ -42,7 +43,7 @@
 <details>
 <summary>完整通关顺序（剧透，点开看）</summary>
 
-1. 书房鞋柜 → 手电筒；门厅鞋柜 → 电池；装上电池后可以开灯
+1. 书房写字台 → 手电筒；门厅鞋柜 → 电池；按 `I` 把电池装进手电筒
 2. 五色书按 红→黄→蓝→绿→紫 排列 → 小铜钥匙
 3. 座钟背板 → 齿轮（挂钟指针停在 3:12）
 4. 八音盒装齿轮 → 听 4 个音 → 复奏（旋律即 5263）
@@ -58,8 +59,12 @@
 | 文件 | 说明 |
 | --- | --- |
 | `index.html` | **3D 网页版**，单文件游戏本体（Three.js 内联，可直接部署到任何静态托管） |
-| `echo_house_c.c` | **C 语言终端版**，864 行单文件、仅依赖 Windows 控制台 API，谜题与网页版一一对应 |
-| `C-VERSION.md` | C 版的玩法、编译方式与代码结构说明 |
+| `echo_house_fp.c` | **C 语言版 · 第一人称画面版**（约 2000 行）：命令行里用光线投射画出墙、地、天花板和家具，`WASD` 走动、`E` 互动。单文件、无第三方库 |
+| `C-FP-VERSION.md` | 画面版的玩法、画面原理、编译方式、代码结构与自检说明 |
+| `echo-manor-c-fp-windows.zip` | 画面版的 Windows 成品包（exe + 源码 + 截图），解压即玩 |
+| `screenshot-c.png` | 画面版的实际运行截图 |
+| `echo_house_c.c` | **C 语言版 · 菜单文字版**，864 行单文件、仅依赖 Windows 控制台 API，谜题与网页版一一对应 |
+| `C-VERSION.md` | 菜单文字版的玩法、编译方式与代码结构说明 |
 | `desktop-shell.cpp` | **Windows 桌面外壳**（190 行 C++ / Win32 + WebView2），把网页版装进独立窗口 |
 | `DESKTOP.txt` | 桌面版打包与使用说明 |
 | `GUIDE-01-overview.md` | 源码导读：两层结构、启动链路、主循环该从哪读起 |
@@ -77,8 +82,22 @@ python -m http.server 8000
 
 **C 语言版**
 
+仓库里有两个 C 版本，**各自有 `main()`，必须分开编译**（放进同一个工程会报重复定义）：
+
 ```bat
-cl /nologo /std:c17 /W4 /utf-8 /Fe:echo_house_c.exe echo_house_c.c
+:: 菜单文字版：一屏文字 + 编号菜单，864 行，最适合当教材读
+cl /nologo /std:c17 /W4 /utf-8 /Fe:echo_house_c.exe  echo_house_c.c
+
+:: 画面版：命令行里画出房间，WASD 走动，约 2000 行
+cl /nologo /std:c17 /W4 /utf-8 /Fe:echo_house_fp.exe echo_house_fp.c
+```
+
+画面版自带两套自检，改完代码不用手点：
+
+```bat
+echo_house_fp.exe --walktest    :: 真的用 W / ← → / E 走位通关，39 项检查
+echo_house_fp.exe --autotest    :: 直接调动作函数通关，16 项检查
+echo_house_fp.exe --dump        :: 导出 9 个机位，逐行校验显示宽度
 ```
 
 需要 MSVC（VS 2019/2022 的开发者命令提示符）或任意支持 C17 的编译器。源码为 UTF-8 带 BOM，Windows 控制台才能正确显示中文与方块字符。

@@ -427,7 +427,23 @@ static void draw_sprites(void) {
     }
 }
 
-/* —— 找一个"正对着且够近"的家具 —— */
+/* 两点之间有没有墙挡着？
+ * 只按距离和角度判断"对准"是不够的：站在门厅走廊贴着北墙，
+ * 离书房那只矮书柜只有 2.2 米、方向也正，但中间隔着一堵墙。
+ * 所以沿视线每 8 厘米采一格，撞到非地面就算被挡住。 */
+static int los_clear(double x0, double y0, double x1, double y1) {
+    double dx = x1 - x0, dy = y1 - y0;
+    double d = sqrt(dx * dx + dy * dy);
+    if (d < 1e-9) return 1;
+    int steps = (int)(d / 0.08) + 1;
+    for (int i = 1; i < steps; i++) {
+        double t = (double)i / (double)steps;
+        if (cell_at((int)floor(x0 + dx * t), (int)floor(y0 + dy * t)) != '.') return 0;
+    }
+    return 1;
+}
+
+/* —— 找一个"正对着、够近、而且中间没有墙"的家具 —— */
 static const Sprite *aimed(void) {
     int n;
     const Sprite *list = cur_spr(&n);
@@ -441,6 +457,7 @@ static const Sprite *aimed(void) {
         while (a > PI) a -= 2 * PI;
         while (a < -PI) a += 2 * PI;
         if (fabs(a) > 0.55) continue;
+        if (!los_clear(P.x, P.y, list[i].x, list[i].y)) continue;
         if (d < bestd) { bestd = d; best = &list[i]; }
     }
     return best;
@@ -581,12 +598,14 @@ static void build_frame(void) {
     }
 
     /* 底部一行：状态 / 操作提示（补满整行，免得上一帧的残影露出来） */
-    fb_str("\x1b[0m ");
-    if (g_status[0]) fb_str(g_status);
-    else fb_str("\x1b[90m走到东西跟前，对准它，按 E。");
-    fb_str("\x1b[0m");
     {
-        int w = 1 + (g_status[0] ? disp_w(g_status) : 21);
+        const char *line = g_status[0] ? g_status : "\x1b[90m走到东西跟前，对准它，按 E。";
+        fb_str("\x1b[0m ");
+        fb_str(line);
+        fb_str("\x1b[0m");
+        /* 宽度必须按真实显示宽度算：这行中文 28 格，早先硬编码成 21，
+         * 一补空格就超出 105 列，终端自动折行，整屏往上滚一格。 */
+        int w = 1 + disp_w(line);
         for (int i = w; i < FRAME_W; i++) fb_ch(' ');
     }
     if (g_flen < sizeof g_frame) g_frame[g_flen] = '\0';
@@ -960,7 +979,9 @@ static void act_shoe(void) {
     ui_clear(); rule();
     puts("  鞋 柜");
     thin();
-    if (S.battery) puts("  柜子里只剩下旧鞋。鞋尖全都朝里，像随时准备离开。");
+    /* 注意判 S.torch：电池被装进手电筒后 S.battery 会清零，
+     * 只看 S.battery 的话，再开一次鞋柜又能白拿一节电池。 */
+    if (S.battery || S.torch) puts("  柜子里只剩下旧鞋。鞋尖全都朝里，像随时准备离开。");
     else {
         S.battery = 1;
         puts("  你拉开柜门。上层塞着一节电池，标签早已褪色。");
@@ -1190,7 +1211,9 @@ static void act_cabinet(void) {
         puts("  【记下了：木箱密码与 0417 有关】");
         Beep(520, 120);
         note("记下了：木箱密码 0417。");
-    } else if (!S.fuse) {
+    } else if (!S.fuse && !S.fuseIn) {
+        /* 装进配电箱后 S.fuse 会清零、S.fuseIn 置 1；
+         * 少判 fuseIn 的话，柜子会无限供应保险丝。 */
         S.fuse = 1;
         puts("  【获得：陶瓷保险丝】——角落里亮着红色指示灯的配电箱正缺这个。");
         note("拿到陶瓷保险丝。");
@@ -1551,6 +1574,34 @@ static void dump_views(int color, const char *path) {
     }
     fclose(f);
     printf("%s written (%d views)\n", path, n);
+
+    /* 再单独画一帧"底部提示为空"的画面：这时走的是默认提示那句长中文，
+     * 宽度最容易算错。算错了终端就会自动折行，把整屏往上顶一格。 */
+    memset(&S, 0, sizeof S);
+    S.floorNo = 0; P.x = 13.0; P.y = 12.2; P.ang = -PI / 2;
+    g_status[0] = '\0';
+    build_frame();
+    {
+        const char *q = g_frame;
+        int row = 0, bad = 0;
+        while (*q) {
+            const char *e = q;
+            while (*e && *e != '\r' && *e != '\n') e++;
+            char line[8192];
+            int len = (int)(e - q);
+            if (len > 8191) len = 8191;
+            memcpy(line, q, (size_t)len);
+            line[len] = '\0';
+            if (disp_w(line) != FRAME_W) {
+                printf("  [warn] 空提示帧 第 %d 行 宽度 %d（应为 %d）\n", row, disp_w(line), FRAME_W);
+                bad++;
+            }
+            row++;
+            while (*e == '\r' || *e == '\n') e++;
+            q = e;
+        }
+        if (!bad) printf("  空提示帧 %d 行，宽度全部 = %d\n", row, FRAME_W);
+    }
 }
 
 /* 自动通关自检：不接键盘，按"正确解法"依次调用每个动作，检查状态。
@@ -1643,6 +1694,315 @@ static void autotest(void) {
            g_fail ? "== 自检未通过 ==" : "== 自检全部通过 ==", g_fail, S.minutes);
 }
 
+/* =====================================================================
+ *  走位自检（--walktest）
+ *  --autotest 是"直接调 act_*"，把走路、转身、对准、墙全都跳过去了。
+ *  这里改成真的按键：
+ *      BFS 在字符地图上找路 → ← → 转身 → W 走 → 按 E 互动
+ *  于是"门洞够不够宽""家具能不能走到""隔墙能不能互动"才测得到。
+ * ===================================================================== */
+static int g_walkfail;
+
+static void wck(int ok, const char *msg) {
+    if (ok) printf("  [ok]   %s\n", msg);
+    else { printf("  [FAIL] %s\n", msg); g_walkfail++; }
+}
+
+static int cell_walkable(int x, int y) { return cell_at(x, y) == '.'; }
+
+/* 从 (sx,sy) 到 (tx,ty) 的最短格路（只走 '.'），写到 ox/oy，返回格数 */
+static int bfs_path(int sx, int sy, int tx, int ty, int *ox, int *oy, int cap) {
+    int w, h;
+    cur_map(&w, &h);
+    if (sx < 0 || sy < 0 || tx < 0 || ty < 0 || sx >= w || tx >= w || sy >= h || ty >= h) return 0;
+    if (!cell_walkable(sx, sy) || !cell_walkable(tx, ty)) return 0;
+
+    static int prev[64 * 64];
+    static int queue[64 * 64];
+    for (int i = 0; i < 64 * 64; i++) prev[i] = -2;
+
+    int s = sy * 64 + sx, t = ty * 64 + tx;
+    int head = 0, tail = 0;
+    queue[tail++] = s; prev[s] = -1;
+    const int dx4[4] = { 1, -1, 0, 0 }, dy4[4] = { 0, 0, 1, -1 };
+    while (head < tail) {
+        int cur = queue[head++];
+        if (cur == t) break;
+        int cx = cur % 64, cy = cur / 64;
+        for (int k = 0; k < 4; k++) {
+            int nx = cx + dx4[k], ny = cy + dy4[k];
+            if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+            if (!cell_walkable(nx, ny)) continue;
+            int ni = ny * 64 + nx;
+            if (prev[ni] != -2) continue;
+            prev[ni] = cur;
+            queue[tail++] = ni;
+        }
+    }
+    if (prev[t] == -2) return 0;
+
+    int n = 0, cur = t;
+    while (cur >= 0 && n < cap) { ox[n] = cur % 64; oy[n] = cur / 64; n++; cur = prev[cur]; }
+    for (int i = 0; i < n / 2; i++) {
+        int tmp = ox[i]; ox[i] = ox[n - 1 - i]; ox[n - 1 - i] = tmp;
+        tmp = oy[i]; oy[i] = oy[n - 1 - i]; oy[n - 1 - i] = tmp;
+    }
+    return n;
+}
+
+/* 用 ← → 把视线转到 want 方向：每按一次转 0.11 弧度 */
+static void face_angle(double want) {
+    for (int i = 0; i < 120; i++) {
+        double d = want - P.ang;
+        while (d > PI) d -= 2 * PI;
+        while (d < -PI) d += 2 * PI;
+        if (fabs(d) < 0.05) return;
+        handle_key(d > 0 ? K_RIGHT : K_LEFT);
+    }
+}
+
+/* 一直朝 (tx,ty) 按 W，直到站稳在 0.2 米内 */
+static int walk_to(double tx, double ty) {
+    int stalls = 0;
+    for (int i = 0; i < 600; i++) {
+        double dx = tx - P.x, dy = ty - P.y;
+        if (sqrt(dx * dx + dy * dy) < 0.20) return 1;
+        face_angle(atan2(dy, dx));
+        double bx = P.x, by = P.y;
+        handle_key('w');
+        if (fabs(P.x - bx) < 1e-4 && fabs(P.y - by) < 1e-4) {
+            if (++stalls > 2) return 0;
+            handle_key('d');                 /* 贴墙蹭一下再走，像真人那样 */
+            handle_key('w');
+            handle_key('a');
+        } else stalls = 0;
+    }
+    return 0;
+}
+
+/* 沿 BFS 路线走到某件家具跟前 */
+static int walk_to_sprite(const Sprite *s) {
+    int cx = (int)floor(P.x), cy = (int)floor(P.y);
+    int tx = (int)floor(s->x), ty = (int)floor(s->y);
+    int ox[600], oy[600];
+    int n = bfs_path(cx, cy, tx, ty, ox, oy, 600);
+    if (n <= 0) { printf("  [warn] 地图上走不到「%s」\n", s->name); return 0; }
+    for (int i = 1; i < n; i++) {
+        if (!walk_to(ox[i] + 0.5, oy[i] + 0.5)) {
+            printf("  [warn] 在格 (%d,%d) 卡住，到不了「%s」\n", ox[i], oy[i], s->name);
+            return 0;
+        }
+    }
+    return 1;
+}
+
+/* 对准 + 按 E */
+static int interact(const Sprite *s, const char *what) {
+    face_angle(atan2(s->y - P.y, s->x - P.x));
+    const Sprite *a = aimed();
+    if (!a) { printf("  [FAIL] 站到「%s」跟前却对不准\n", what); g_walkfail++; return 0; }
+    if (strcmp(a->name, s->name) != 0)
+        printf("  [warn] 对准的其实是「%s」（想找「%s」）\n", a->name, what);
+    handle_key('e');
+    return 1;
+}
+
+/* 全图扫描：
+ *   geom —— 几何上"视线被墙挡住、但距离和角度都够"的机位有多少（修复前会误判）
+ *   bad  —— aimed() 实际放行了多少个被挡住的（必须为 0）
+ * 两层地图 × 每个可走格心 × 120 个朝向。 */
+static int scan_aim(int *geom, int *samples) {
+    int bad = 0, g = 0, ns = 0;
+    for (int fl = 0; fl <= 1; fl++) {
+        S.floorNo = fl;
+        int n, w, h;
+        const Sprite *list = cur_spr(&n);
+        cur_map(&w, &h);
+        for (int cy = 0; cy < h; cy++)
+            for (int cx = 0; cx < w; cx++) {
+                if (!cell_walkable(cx, cy)) continue;
+                P.x = cx + 0.5; P.y = cy + 0.5;
+                for (int a = 0; a < 120; a++) {
+                    P.ang = a * (2 * PI / 120);
+                    ns++;
+                    const Sprite *hit = aimed();
+                    if (hit && !los_clear(P.x, P.y, hit->x, hit->y)) bad++;
+                    for (int i = 0; i < n; i++) {
+                        double ax = list[i].x - P.x, ay = list[i].y - P.y;
+                        double d = sqrt(ax * ax + ay * ay);
+                        if (d > 2.8 || d < 0.05) continue;
+                        double rel = atan2(ay, ax) - P.ang;
+                        while (rel > PI) rel -= 2 * PI;
+                        while (rel < -PI) rel += 2 * PI;
+                        if (fabs(rel) > 0.55) continue;
+                        if (!los_clear(P.x, P.y, list[i].x, list[i].y)) g++;
+                    }
+                }
+            }
+    }
+    *geom = g;
+    *samples = ns;
+    return bad;
+}
+
+static void walktest(void) {
+    g_auto = 1; g_vt = 0; g_color = 0;
+    memset(&S, 0, sizeof S);
+    S.rustyKey = 1;
+    S.floorNo = 0;
+    P.x = 13.0; P.y = 12.2; P.ang = -PI / 2;
+
+    puts("== 走位通关自检：真的用 W / ← → / E ==");
+    wck(cell_walkable((int)floor(P.x), (int)floor(P.y)), "出生点站在可走地面上");
+
+    /* 1. 书房写字台：必须穿过门厅与书房之间那道 1 米宽的门洞 */
+    wck(walk_to_sprite(&SPR0[7]), "从门厅穿过门洞走到书房写字台");
+    interact(&SPR0[7], "写字台");
+    wck(S.flash == 1, "按 E → 拿到手电筒");
+
+    /* 2. 门厅鞋柜 */
+    wck(walk_to_sprite(&SPR0[0]), "走回门厅鞋柜");
+    interact(&SPR0[0], "鞋柜");
+    wck(S.battery == 1, "按 E → 拿到电池");
+
+    /* 3. 背包组合 */
+    set_input("1", NULL, NULL, NULL);
+    handle_key('i');
+    wck(S.torch == 1 && S.flash == 0 && S.battery == 0, "按 I → 电池装进手电筒");
+
+    /* 4. 再开一次鞋柜：电池不能复活 */
+    wck(walk_to_sprite(&SPR0[0]), "再走到鞋柜");
+    interact(&SPR0[0], "鞋柜（第二次）");
+    wck(S.battery == 0, "重复开鞋柜不会再给电池");
+
+    /* 5. 下地下室 */
+    wck(walk_to_sprite(&SPR0[5]), "走到往地下的石阶");
+    interact(&SPR0[5], "石阶");
+    wck(S.floorNo == 1, "按 E → 进入地下室");
+    wck(cell_walkable((int)floor(P.x), (int)floor(P.y)), "落点没有卡进墙里");
+
+    /* 6. 储物柜 → 保险丝 */
+    wck(walk_to_sprite(&SPR1[0]), "走到储物柜");
+    interact(&SPR1[0], "储物柜");
+    interact(&SPR1[0], "储物柜（取保险丝）");
+    wck(S.fuse == 1, "拿到保险丝");
+
+    /* 7. 装保险丝 + 拉闸 3-1-2 */
+    wck(walk_to_sprite(&SPR1[2]), "走到配电箱");
+    interact(&SPR1[2], "配电箱");
+    wck(S.fuseIn == 1, "保险丝装进配电箱");
+    set_input("3", "1", "2", NULL);
+    interact(&SPR1[2], "配电箱（拉闸）");
+    wck(S.powerOn == 1, "闸刀 3-1-2 → 通电");
+
+    /* 8. 保险丝也不能复活 */
+    wck(walk_to_sprite(&SPR1[0]), "回到储物柜");
+    interact(&SPR1[0], "储物柜（第三次）");
+    wck(S.fuse == 0, "重复开储物柜不会再给保险丝");
+
+    /* 9. 木箱 0417 */
+    wck(walk_to_sprite(&SPR1[1]), "走到木箱");
+    set_input("0417", NULL, NULL, NULL);
+    interact(&SPR1[1], "木箱");
+    wck(S.crateOpen == 1 && S.watch == 1, "木箱 0417 → 怀表");
+
+    /* 10. 上楼 */
+    wck(walk_to_sprite(&SPR1[3]), "走回上楼石阶");
+    interact(&SPR1[3], "上楼石阶");
+    wck(S.floorNo == 0, "按 E → 回到门厅");
+
+    /* 11. 书架 */
+    wck(walk_to_sprite(&SPR0[6]), "走到书架");
+    interact(&SPR0[6], "书架");
+    wck(S.diary == 1, "拿到日记残页");
+
+    /* 12. 五色书 3-5-3-5-5 */
+    wck(walk_to_sprite(&SPR0[9]), "走到矮书柜");
+    g_script[0] = "3"; g_script[1] = "5"; g_script[2] = "3";
+    g_script[3] = "5"; g_script[4] = "5"; g_si = 0;
+    interact(&SPR0[9], "矮书柜");
+    wck(S.booksSolved == 1 && S.smallKey == 1, "五色书 → 小铜钥匙");
+
+    /* 13. 座钟 → 齿轮 */
+    wck(walk_to_sprite(&SPR0[1]), "走到座钟");
+    interact(&SPR0[1], "座钟");
+    interact(&SPR0[1], "座钟（开背板）");
+    wck(S.gear == 1, "座钟 → 黄铜齿轮");
+
+    /* 14. 八音盒 */
+    wck(walk_to_sprite(&SPR0[2]), "走到八音盒");
+    set_input("5263", NULL, NULL, NULL);
+    interact(&SPR0[2], "八音盒");
+    wck(S.musicSolved == 1, "八音盒 5-2-6-3 → 大门密码");
+
+    /* 15. 保险箱 */
+    wck(walk_to_sprite(&SPR0[10]), "走到保险箱");
+    set_input("1986", NULL, NULL, NULL);
+    interact(&SPR0[10], "保险箱");
+    wck(S.brassKey == 1, "保险箱 1986 → 黄铜钥匙");
+
+    /* 16. 大门 */
+    wck(walk_to_sprite(&SPR0[4]), "走到大门");
+    set_input("5263", NULL, NULL, NULL);
+    interact(&SPR0[4], "大门");
+    wck(S.ending == 1, "三道锁全开 → 结局「走出去的人」");
+    wck(S.mistakes == 0, "全程 0 错误");
+
+    /* 17. 隔墙互动扫描 */
+    {
+        int geom = 0, samples = 0;
+        int bad = scan_aim(&geom, &samples);
+        printf("         扫了 %d 个机位，其中几何上被墙挡住的 %d 个\n", samples, geom);
+        wck(bad == 0, "全图扫描：没有一次能隔着墙按 E（修复前有 21 次）");
+    }
+
+    /* 18. 碰撞粗暴测试 */
+    {
+        unsigned seed = 12345u;
+        int bad = 0;
+        S.floorNo = 0;
+        P.x = 13.0; P.y = 12.2;
+        for (int i = 0; i < 800; i++) {
+            seed = seed * 1103515245u + 12345u;
+            switch ((int)((seed >> 16) % 6u)) {
+            case 0: handle_key('w'); break;
+            case 1: handle_key('s'); break;
+            case 2: handle_key('a'); break;
+            case 3: handle_key('d'); break;
+            case 4: handle_key(K_LEFT); break;
+            default: handle_key(K_RIGHT); break;
+            }
+            if (!cell_walkable((int)floor(P.x), (int)floor(P.y))) bad++;
+        }
+        wck(bad == 0, "随机按 800 次键，没有一步踩进墙里");
+    }
+
+    /* 19. 超时分支：第 60 分钟必须判负 */
+    int clear_min = S.minutes;              /* 记下真正通关用了多久，后面几项会重置状态 */
+    {
+        memset(&S, 0, sizeof S);
+        S.torch = 1; S.minutes = 59; S.ending = 0;
+        P.x = 13.0; P.y = 8.6;
+        act_mirror();                       /* 看一眼镜子：+1 分钟 */
+        wck(S.minutes >= TIME_LIMIT && S.ending == 2, "第 60 分钟 → 结局「房子记得所有人」");
+    }
+
+    /* 20. 错满 5 次分支 */
+    {
+        memset(&S, 0, sizeof S);
+        S.torch = 1; S.ending = 0;
+        P.x = 10.8; P.y = 4.8;
+        for (int i = 0; i < MAX_MISTAKE; i++) {
+            set_input("0000", NULL, NULL, NULL);
+            act_safe();
+        }
+        wck(S.mistakes == MAX_MISTAKE && S.ending == 3, "错满 5 次 → 结局「第五次错误」");
+    }
+
+    printf("\n  %s：失败 %d 项 / 通关用时 %d 分钟\n",
+           g_walkfail ? "== 走位自检未通过 ==" : "== 走位自检全部通过 ==", g_walkfail, clear_min);
+}
+
 int main(int argc, char **argv) {
     if (argc > 1 && strncmp(argv[1], "--dump", 6) == 0) {
         int color = (strcmp(argv[1], "--dump-color") == 0);
@@ -1652,6 +2012,10 @@ int main(int argc, char **argv) {
     if (argc > 1 && strcmp(argv[1], "--autotest") == 0) {
         autotest();
         return g_fail ? 1 : 0;
+    }
+    if (argc > 1 && strcmp(argv[1], "--walktest") == 0) {
+        walktest();
+        return g_walkfail ? 1 : 0;
     }
 
     memset(&S, 0, sizeof S);
