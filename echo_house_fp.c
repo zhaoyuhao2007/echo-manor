@@ -248,7 +248,7 @@ typedef struct {
     void (*act)(void);
 } Sprite;
 
-/* 动作函数先声明：家具表里要存它们的地址（就是网页版 addHit 里那个 act） */
+/* 动作函数先声明：家具表里要存它们的地址（就是 addHit 里那个 act） */
 static void act_shoe(void);
 static void act_stand(void);
 static void act_music(void);
@@ -972,7 +972,7 @@ static void puzzle_breaker(void) {
 }
 
 /* =====================================================================
- *  ⑧ 家具的动作（就是网页版 addHit 里那个 act）
+ *  ⑧ 家具的动作（就是 addHit 里那个 act）
  * ===================================================================== */
 
 static void act_shoe(void) {
